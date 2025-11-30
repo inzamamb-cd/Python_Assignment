@@ -1,0 +1,39 @@
+inzamambari@Inzamams-MacBook-Air Python_Assignment_Q2 % python3 CPU_health_monitor.py 
+--- DevOps Server Health Monitor ---
+Monitoring CPU usage every 2 seconds...
+Alert Threshold: 80.0%
+Press Ctrl+C to interrupt and stop the monitoring.
+----------------------------------------
+Current CPU Usage: 0.0%
+Current CPU Usage: 20.0%
+Current CPU Usage: 23.9%
+Current CPU Usage: 30.9%
+Current CPU Usage: 30.8%
+Current CPU Usage: 21.6%
+Current CPU Usage: 24.9%
+Current CPU Usage: 23.2%
+Current CPU Usage: 23.2%
+Current CPU Usage: 32.7%
+Current CPU Usage: 39.6%
+Current CPU Usage: 37.5%
+Current CPU Usage: 45.9%
+Current CPU Usage: 36.1%
+Current CPU Usage: 26.0%
+Current CPU Usage: 18.6%
+Current CPU Usage: 21.4%
+Current CPU Usage: 21.5%
+Current CPU Usage: 22.0%
+Current CPU Usage: 20.4%
+Current CPU Usage: 28.8%
+Current CPU Usage: 24.8%
+Current CPU Usage: 34.6%
+Current CPU Usage: 40.9%
+Current CPU Usage: 40.9%
+Current CPU Usage: 29.0%
+Current CPU Usage: 32.0%
+Current CPU Usage: 24.8%
+Current CPU Usage: 18.4%
+Current CPU Usage: 18.8%
+Current CPU Usage: 21.2%
+^C
+Monitoring interrupted by user (Ctrl+C). Exiting...
