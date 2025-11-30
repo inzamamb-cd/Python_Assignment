@@ -18,10 +18,8 @@ def check_password_strength(password: str) -> bool:
     # 4. Check for Digit
     if not re.search(r"\d", password):
         return False
-        
-    # 5. Check for Special Character
-    # We use string.punctuation to cover all standard special characters
-    # passing the pattern into re.escape ensures regex doesn't break on characters like '[' or '*'
+
+    # 5. Check for Special Characters
     special_chars_pattern = f"[{re.escape(string.punctuation)}]"
     if not re.search(special_chars_pattern, password):
         return False
