@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevOps Config Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fb;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 min-h-screen">
+    <div id="app" class="max-w-4xl mx-auto bg-white p-6 md:p-10 rounded-xl shadow-2xl border border-gray-100">
+
+        <h1 class="text-3xl font-bold text-gray-800 mb-2 border-b-2 pb-2 border-indigo-100">
+            DevOps Configuration Manager
+        </h1>
+        <p class="text-gray-500 mb-6">
+            Parse <code>app_config.ini</code>, save it to the database, and fetch the results via a simulated GET API call.
+        </p>
+
+        <div class="space-y-6">
+            <!-- Action Buttons -->
+            <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+                <button onclick="parseAndSaveConfig()" 
+                        id="parseButton"
+                        class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 shadow-md transform hover:scale-[1.01] focus:outline-none focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50">
+                    1. Parse & Save to DB (POST)
+                </button>
+                <button onclick="fetchConfig()" 
+                        id="fetchButton"
+                        class="flex-1 bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 shadow-md transform hover:scale-[1.01] focus:outline-none focus:ring-4 focus:ring-green-500 focus:ring-opacity-50">
+                    2. Fetch from DB (GET)
+                </button>
+            </div>
+
+            <!-- Status Message Area -->
+            <div id="statusMessage" 
+                 class="p-4 rounded-lg text-sm transition duration-300 hidden" 
+                 role="alert">
+            </div>
+
+            <!-- Output Area -->
+            <div class="bg-gray-50 p-6 rounded-lg border border-gray-200 shadow-inner">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-indigo-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zm-3.5 9.5a1 1 0 011-1h5a1 1 0 010 2h-5a1 1 0 01-1-1z"></path></svg>
+                    Fetched Configuration Data (JSON)
+                </h2>
+                <pre id="outputDisplay" class="bg-gray-800 text-green-400 p-4 rounded-md overflow-x-auto text-sm"></pre>
+            </div>
+            
+            <!-- Sample Config Display -->
+            <div class="bg-white p-6 rounded-lg border border-gray-200 shadow-lg">
+                <h2 class="text-xl font-semibold text-gray-700 mb-3 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                    Expected Parsed Output
+                </h2>
+                <pre class="bg-gray-100 text-gray-600 p-4 rounded-md overflow-x-auto text-sm">
+Configuration File Parser Results:
+
+Database:
+- host: localhost
+- port: 3306
+- username: admin
+- password: secret
+
+Server:
+- address: 192.168.0.1
+- port: 8080</pre>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = window.location.origin; // Dynamically use the current host
+        const statusMessage = document.getElementById('statusMessage');
+        const outputDisplay = document.getElementById('outputDisplay');
+        const parseButton = document.getElementById('parseButton');
+        const fetchButton = document.getElementById('fetchButton');
+
+        function setStatus(message, type = 'info') {
+            statusMessage.textContent = message;
+            statusMessage.classList.remove('hidden', 'bg-red-100', 'bg-green-100', 'text-red-800', 'text-green-800');
+            
+            if (type === 'error') {
+                statusMessage.classList.add('bg-red-100', 'text-red-800');
+            } else if (type === 'success') {
+                statusMessage.classList.add('bg-green-100', 'text-green-800');
+            } else { // info/default
+                statusMessage.classList.add('bg-indigo-100', 'text-indigo-800');
+            }
+        }
+
+        function toggleLoading(isLoading) {
+            parseButton.disabled = isLoading;
+            fetchButton.disabled = isLoading;
+            if (isLoading) {
+                setStatus("Processing request...", 'info');
+            } else {
+                statusMessage.classList.add('hidden');
+            }
+        }
+
+        function base64ToArrayBuffer(base64) {
+            const binary_string = window.atob(base64);
+            const len = binary_string.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binary_string.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        // --- Exponential Backoff Fetcher ---
+        async function fetchWithRetry(url, options = {}, retries = 3) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (response.ok) return response;
+                    
+                    // For non-200 responses, throw an error to trigger retry/catch
+                    const errorBody = await response.json().catch(() => ({}));
+                    throw new Error(`API returned status ${response.status}: ${errorBody.message || 'Unknown error'}`);
+                    
+                } catch (error) {
+                    if (i < retries - 1) {
+                        const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    } else {
+                        throw error; 
+                    }
+                }
+            }
+        }
+
+        // --- 1. POST Request (Parse and Save) ---
+        async function parseAndSaveConfig() {
+            toggleLoading(true);
+            outputDisplay.textContent = 'Awaiting response from parser...';
+            
+            try {
+                const response = await fetchWithRetry(`${API_BASE_URL}/parse-and-save`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({}) // POST body is empty as config is local to server
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    setStatus(`Successfully parsed and saved! ${result.message}`, 'success');
+                    outputDisplay.textContent = JSON.stringify(result.data, null, 2);
+                } else {
+                    setStatus(`Error during save: ${result.message}`, 'error');
+                    outputDisplay.textContent = JSON.stringify(result, null, 2);
+                }
+                
+            } catch (error) {
+                setStatus(`Request Failed: ${error.message}`, 'error');
+                outputDisplay.textContent = `Error: ${error.message}`;
+            } finally {
+                toggleLoading(false);
+            }
+        }
+
+        // --- 2. GET Request (Fetch from DB) ---
+        async function fetchConfig() {
+            toggleLoading(true);
+            outputDisplay.textContent = 'Fetching data from database...';
+            
+            try {
+                const response = await fetchWithRetry(`${API_BASE_URL}/get-config`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    setStatus(`Successfully fetched configuration data!`, 'success');
+                    outputDisplay.textContent = JSON.stringify(result.data, null, 2);
+                } else {
+                    setStatus(`Error during fetch: ${result.message}`, 'error');
+                    outputDisplay.textContent = JSON.stringify(result, null, 2);
+                }
+
+            } catch (error) {
+                setStatus(`Request Failed: ${error.message}`, 'error');
+                outputDisplay.textContent = `Error: ${error.message}`;
+            } finally {
+                toggleLoading(false);
+            }
+        }
+        
+        // Initial setup info
+        document.addEventListener('DOMContentLoaded', () => {
+            outputDisplay.textContent = 'Press "Parse & Save to DB (POST)" to begin.';
+            setStatus('Ready to start configuration management automation.', 'info');
+        });
+
+    </script>
+</body>
+</html>

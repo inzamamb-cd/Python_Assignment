@@ -1,0 +1,13 @@
+inzamambari@Inzamams-MacBook-Air Python_Assignment_Q4 % python3 backup.py ../Python_Assignment_Q3 ./Python_Assignment_Q3_backup
+--------------------------------------------------
+Starting Backup Operation...
+Source: ../Python_Assignment_Q3
+Destination: ./Python_Assignment_Q3_backup
+--------------------------------------------------
+✅ Created destination directory: './Python_Assignment_Q3_backup'
+  --> Copied: index.html
+  --> Copied: config.py
+  --> Copied: app_config.ini
+  --> Copied: output.txt
+--------------------------------------------------
+✅ Backup complete! Total files copied: 4
